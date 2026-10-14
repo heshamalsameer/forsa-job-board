@@ -1,171 +1,133 @@
-import * as React from 'react';
-import { styled, alpha } from '@mui/material/styles';
-import AppBar from '@mui/material/AppBar';
-import Box from '@mui/material/Box';
-import Toolbar from '@mui/material/Toolbar';
-import IconButton from '@mui/material/IconButton';
-import Typography from '@mui/material/Typography';
-import InputBase from '@mui/material/InputBase';
-import MenuIcon from '@mui/icons-material/Menu';
-import SearchIcon from '@mui/icons-material/Search';
-import { Link } from 'react-router-dom';
-import { Button, Divider, Drawer, Stack } from '@mui/material';
-import { GlobalContext } from '../Context/Context';
-import {Action_Types as actions} from '../Context/ActionsTypes';
+import React, { useEffect, useRef, useState } from "react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import { useJobs } from "../Context/Context";
+import { Action_Types as actions } from "../Context/ActionsTypes";
+import { Briefcase, Building, Close, Grid, Logout, Menu, Moon, Plus, Sun, User, Bookmark } from "./Icons";
+import { colorFor, initials } from "./utils";
 
-const Search = styled('div')(({ theme }) => ({
-  borderRight:'solid 2px black',
-  position: 'relative',
-  borderRadius: theme.shape.borderRadius,
-  backgroundColor: alpha(theme.palette.common.white, 0.15),
-  '&:hover': {
-    backgroundColor: alpha(theme.palette.common.white, 0.25),
-  },
-  marginLeft: 0,
-  width: '75%',
-  [theme.breakpoints.up('sm')]: {
-    marginLeft: theme.spacing(1),
-    width: 'auto',
-  },
-}));
-
-const ButtonLogin = styled('button')(({ theme }) => ({
-  borderRadius: theme.shape.borderRadius,
-  backgroundColor: alpha(theme.palette.common.white, 0.15),
-  '&:hover': {
-    backgroundColor: alpha(theme.palette.common.white, 0.25),
-  },
-  color:'white',
-  display:'none',
-  marginLeft: '20px',
-  height:'37px',
-  width: '80px',
-  [theme.breakpoints.up('sm')]: {
-    display:'block'
-  },
-}));
-
-const SearchIconWrapper = styled('div')(({ theme }) => ({
-  padding: theme.spacing(0, 2),
-  height: '100%',
-  position: 'absolute',
-  pointerEvents: 'none',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-}));
-
-const StyledInputBase = styled(InputBase)(({ theme }) => ({
-  
-  color: 'inherit',
-  '& .MuiInputBase-input': {
-    padding: theme.spacing(1, 1, 1, 0),
-    // vertical padding + font size from searchIcon
-    paddingLeft: `calc(1em + ${theme.spacing(4)})`,
-    transition: theme.transitions.create('width'),
-    width: '100%',
-    [theme.breakpoints.up('sm')]: {
-      width: '12ch',
-      '&:focus': {
-        width: '20ch',
-      },
-    },
-  },
-}));
-
+export const Logo = () => (
+  <Link to="/" className="logo" aria-label="Forsa home">
+    <span className="logo-mark"><Briefcase /></span>
+    Forsa
+  </Link>
+);
 
 export const Header = () => {
-  const [open,setopen] = React.useState (false);
-  const [searchvalue,setsearch] = React.useState('');
-  const Context = React.useContext(GlobalContext);
-  const handlecgange = (e) => setsearch(e.target.value)
+  const ctx = useJobs();
+  const navigate = useNavigate();
+  const [scrolled, setScrolled] = useState(false);
+  const [menu, setMenu] = useState(false);
+  const [mobile, setMobile] = useState(false);
+  const ref = useRef(null);
+  const isCompany = ctx.user?.loginby === "company";
+  const myApps = ctx.user ? ctx.employees.filter((a) => a.email === ctx.user.email).length : 0;
+  const myJobs = ctx.user ? ctx.jobs.filter((j) => j.ownerEmail === ctx.user.email) : [];
+  const incoming = ctx.employees.filter((a) => myJobs.some((j) => j.id === a.id) && a.status === "new").length;
+
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 8);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!menu) return undefined;
+    const close = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setMenu(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [menu]);
+
+  const logout = () => {
+    ctx.dispatch({ type: actions.LOGOUT });
+    ctx.notify("You’ve been signed out");
+    setMenu(false);
+    setMobile(false);
+    navigate("/");
+  };
+
+  const links = [
+    { to: "/", label: "Find jobs", end: true },
+    ...(ctx.user && !isCompany ? [{ to: "/applications", label: "My applications", count: myApps }] : []),
+    ...(isCompany ? [{ to: "/dashboard", label: "Dashboard", count: incoming }, { to: "/addnewjob", label: "Post a job" }] : []),
+  ];
+
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static">
-        <Toolbar>
-          <IconButton
-            size="large"  
-            edge="start"
-            color="inherit"
-            aria-label="open drawer"
-            sx={{display: { sm: 'none' } }}
-            onClick={() => {setopen(true)}} 
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography
-            variant="h6"
-            color='white'
-            sx={{fontSize:"35px",display : {xs : 'none',sm : 'block'},flexGrow: 1}}
-            >
-          <Link to='/' style={{textDecoration:'none',color:'white'}}>
-            Home
-          </Link>
-          </Typography>
-            <Drawer variant='temporary' open={open} anchor='left' onClose={() => {setopen(false)}}>
-                    <Box component={'nav'} p={3} >
-                    <Divider/>
-                    <Stack spacing={1} alignItems={'center'} onClick={() => {setopen(false)}}>
-                        <Link activeClassName='active' to={'/'} > <Button  sx={{color : 'black','&:hover':{bgcolor:'goldenrod'},fontSize :'25px'}}>Home</Button></Link>
-                        <Link to={'/signin'}> <Button  sx={{color : 'black','&:hover':{bgcolor:'goldenrod'},fontSize :'20px'}}>Sign in</Button></Link>
-                        <Link to={'/signup'}> <Button sx={{color : 'black','&:hover':{bgcolor:'goldenrod'},fontSize :'20px'}}>Sign up</Button></Link>
-                        <Button sx={{color : 'black','&:hover':{bgcolor:'goldenrod'},fontSize :'20px'}} onClick={() => Context.dispatch({type: actions.LOGOUT,}) }>Log Out</Button>
-                        <Link to={'/addnewjob'}> <Button sx={{color : 'black','&:hover':{bgcolor:'goldenrod'},fontSize :'20px'}}>Add Job</Button></Link>
-                        
-                    </Stack>
-                    </Box>
-                </Drawer>
-          <Search>
-            <SearchIconWrapper>
-              <SearchIcon />
-            </SearchIconWrapper>
-            <StyledInputBase
-              placeholder="Search…"
-              inputProps={{ 'aria-label': 'search' }}
-              value={searchvalue}
-              onChange={handlecgange}
-            />
-          </Search>
-          <ButtonLogin
-            sx={{ml:0,height:'39px',border:'none',mr:'20px',display: {xs: 'none',sm: 'block'}}}
-            onClick={() => Context.dispatch({
-              type :actions.FILTER_JOBS_BYSEARCH,
-              search: searchvalue
-            })}
-          >
-            search
-          </ButtonLogin>
-          <ButtonLogin
-            sx={{display: {xs: 'block',sm:'none'}}}
-            onClick={() => Context.dispatch({
-              type :actions.FILTER_JOBS_BYSEARCH,
-              search: searchvalue
-            })}
-          >
-            Search
-          </ButtonLogin>
-          <Stack direction={'row'} >
-            <Link to='/signin' style={{textDecoration:'none'}}>
-          <ButtonLogin  >
-            Sign in
-          </ButtonLogin>
-            </Link>
-          <Link to='/signup' style={{textDecoration:'none'}}>
-          <ButtonLogin  >
-            Sign up
-          </ButtonLogin>
-            </Link>
-          <ButtonLogin onClick={() => {Context.setlogin(false)}} >
-            Log Out
-          </ButtonLogin>
-            <Link to='/addnewjob' style={{textDecoration:'none'}}>
-          <ButtonLogin  >
-            Add Job
-          </ButtonLogin>
-            </Link>
-            </Stack>
-        </Toolbar>
-      </AppBar>
-    </Box>
+    <header className={`header ${scrolled ? "scrolled" : ""}`}>
+      <div className="container">
+        <div className="nav">
+          <Logo />
+          <nav className="links" aria-label="Main">
+            {links.map((l) => (
+              <NavLink key={l.to} to={l.to} end={l.end}>
+                {l.label}
+                {!!l.count && <span className="count">{l.count}</span>}
+              </NavLink>
+            ))}
+          </nav>
+          <div className="spacer" />
+          <button className="icon-btn" aria-label="Toggle dark mode" onClick={ctx.toggleTheme}>{ctx.theme === "dark" ? <Sun /> : <Moon />}</button>
+          {ctx.user ? (
+            <>
+              {isCompany && <Link to="/addnewjob" className="btn btn-primary hide-sm"><Plus /> Post a job</Link>}
+              <div className="user-menu hide-sm" ref={ref}>
+                <button className="user-btn" aria-expanded={menu} onClick={() => setMenu((m) => !m)}>
+                  <span className="avatar" style={{ background: colorFor(ctx.user.name) }}>{initials(ctx.user.name)}</span>
+                  <span>{ctx.user.name.split(" ")[0]}</span>
+                </button>
+                {menu && (
+                  <div className="dropdown">
+                    <div className="who">
+                      <strong>{ctx.user.name}</strong>
+                      <div className="muted" style={{ fontSize: 13 }}>{ctx.user.email}</div>
+                      <span className={`badge ${isCompany ? "blue" : "green"}`} style={{ marginTop: 8 }}>
+                        {isCompany ? <Building /> : <User />} {isCompany ? "Company" : "Job seeker"}
+                      </span>
+                    </div>
+                    {isCompany ? (
+                      <>
+                        <Link to="/dashboard" onClick={() => setMenu(false)}><Grid /> Dashboard</Link>
+                        <Link to="/addnewjob" onClick={() => setMenu(false)}><Plus /> Post a job</Link>
+                      </>
+                    ) : (
+                      <>
+                        <Link to="/applications" onClick={() => setMenu(false)}><Briefcase /> My applications</Link>
+                        <Link to="/applications?tab=saved" onClick={() => setMenu(false)}><Bookmark /> Saved jobs</Link>
+                      </>
+                    )}
+                    <button onClick={logout}><Logout /> Sign out</button>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <Link to="/signin" className="btn btn-ghost hide-sm">Sign in</Link>
+              <Link to="/signup" className="btn btn-primary hide-sm">Create account</Link>
+            </>
+          )}
+          <button className="icon-btn burger" aria-label="Menu" aria-expanded={mobile} onClick={() => setMobile((m) => !m)}>{mobile ? <Close /> : <Menu />}</button>
+        </div>
+        {mobile && (
+          <nav className="mobile-nav" aria-label="Mobile">
+            {links.map((l) => (
+              <NavLink key={l.to} to={l.to} end={l.end} onClick={() => setMobile(false)}>{l.label}{!!l.count && <span className="badge green">{l.count}</span>}</NavLink>
+            ))}
+            {ctx.user ? (
+              <button onClick={logout}><Logout width={18} /> Sign out ({ctx.user.name})</button>
+            ) : (
+              <>
+                <NavLink to="/signin" onClick={() => setMobile(false)}>Sign in</NavLink>
+                <NavLink to="/signup" onClick={() => setMobile(false)}>Create account</NavLink>
+              </>
+            )}
+          </nav>
+        )}
+      </div>
+    </header>
   );
-}
+};

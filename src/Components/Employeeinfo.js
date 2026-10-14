@@ -1,51 +1,44 @@
-import React, { useContext } from "react";
-import { Box, Modal, Typography, styled } from "@mui/material";
-import { GlobalContext } from "../Context/Context";
+import React from "react";
+import { Modal } from "./Modal";
+import { File, Mail, Phone } from "./Icons";
+import { colorFor, initials, timeAgo } from "./utils";
 
+export const statusTone = { new: "blue", shortlisted: "green", rejected: "red" };
+export const statusLabel = { new: "New", shortlisted: "Shortlisted", rejected: "Not selected" };
 
-const StyledModel = styled(Modal)({
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-  });
-  const BoxModal = styled(Box)({
-    width: "500px",
-    height: "300px",
-    borderRadius: "20px",
-    padding: "30px",
-    color:'text.primary'
-  });
-  
-
-  export const Employeeinfo = () => {
-    const Context =useContext(GlobalContext);
-    const handleClose = () => Context.Settwomodel({employee:{},open:false});
-
-    return (
+export const Employeeinfo = ({ employee, job, onClose, onStatus }) => {
+  if (!employee) return null;
+  return (
+    <Modal
+      open={!!employee}
+      onClose={onClose}
+      title={employee.name}
+      subtitle={`Applied to ${job?.name || "a job"} · ${timeAgo(employee.at)}`}
+      icon={<span className="avatar" style={{ background: colorFor(employee.name) }}>{initials(employee.name)}</span>}
+      footer={
         <>
-        <StyledModel
-          open={Context.twomodel.open}
-          onClose={handleClose}
-        >
-          <BoxModal bgcolor='background.default' color='text.primary'>
-            <Typography mb={2} variant="h5" color={"gray"} textAlign={"center"}>
-            This person's information
-            </Typography>
-            <Typography variant="h5" sx={{bgcolor:'wheat',height:'35px',borderRadius:'35px',pl:2}}  >
-              <span className="fw-bold" >Number</span>: {Context.twomodel.employee.id}
-            </Typography>
-            <Typography variant="h5" sx={{mt:1,bgcolor:'wheat',height:'35px',borderRadius:'35px',pl:2}} >
-            <span className="fw-bold" >Name</span>: {Context.twomodel.employee.name}
-            </Typography>
-            <Typography variant="h5" sx={{mt:1,bgcolor:'wheat',height:'50px',borderRadius:'35px',pl:2,overflow:'scroll'}} >
-            <span className="fw-bold" >Email</span>: {Context.twomodel.employee.email}
-            </Typography>
-            <Typography variant="h5" sx={{mt:1,bgcolor:'wheat',height:'35px',borderRadius:'35px',pl:2}} >
-            <span className="fw-bold" >Mobile</span>: {Context.twomodel.employee.phone}
-            </Typography>
-          </BoxModal>
-        </StyledModel>
-      </>
-    )
-  }
-  
+          <button className="btn btn-danger" onClick={() => onStatus("rejected")}>Not a fit</button>
+          <div className="spacer" />
+          <a className="btn" href={`mailto:${employee.email}?subject=${encodeURIComponent(`Your application: ${job?.name || ""}`)}`}><Mail /> Email</a>
+          <button className="btn btn-primary" onClick={() => onStatus("shortlisted")}>Shortlist</button>
+        </>
+      }
+    >
+      <div className="modal-body">
+        <div className="review">
+          <div><span>Application №</span><strong>{employee.appId}</strong></div>
+          <div><span><Mail width={14} style={{ verticalAlign: -2 }} /> Email</span><strong><a href={`mailto:${employee.email}`}>{employee.email}</a></strong></div>
+          <div><span><Phone width={14} style={{ verticalAlign: -2 }} /> Mobile</span><strong><a href={`tel:${employee.phone}`}>{employee.phone}</a></strong></div>
+          <div><span><File width={14} style={{ verticalAlign: -2 }} /> CV</span><strong>{employee.file || "—"}</strong></div>
+          <div><span>Status</span><strong><span className={`badge ${statusTone[employee.status]}`}>{statusLabel[employee.status]}</span></strong></div>
+        </div>
+        {employee.note && (
+          <div style={{ marginTop: 14 }}>
+            <div className="muted" style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Note from applicant</div>
+            <p style={{ background: "var(--surface-2)", padding: 14, borderRadius: 12 }}>{employee.note}</p>
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+};

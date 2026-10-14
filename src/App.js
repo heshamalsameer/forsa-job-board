@@ -1,43 +1,44 @@
-import {BrowserRouter as Router,Routes,Route} from 'react-router-dom'
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import {Home} from './Pages/Home';
-import {Signin} from './Pages/Signin';
-import {Signup} from './Pages/Signup';
-import {Pagenotfound} from './Pages/Pagenotfound';
-import  {Context}  from './Context/Context';
-import './App.css';
-import { Addnewjob } from './Components/Addnewjob';
-import {PrivateRoutes} from './Pages/Utils'
+import React, { useEffect } from "react";
+import { HashRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import "./App.css";
+import { Context } from "./Context/Context";
+import { Home } from "./Pages/Home";
+import { Signin } from "./Pages/Signin";
+import { Signup } from "./Pages/Signup";
+import { Dashboard } from "./Pages/Dashboard";
+import { Applications } from "./Pages/Applications";
+import { Pagenotfound } from "./Pages/Pagenotfound";
+import { Addnewjob } from "./Components/Addnewjob";
+import { PrivateRoutes } from "./Pages/Utils";
 
+const ScrollTop = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+};
 
 function App() {
-  const theme = createTheme({
-    palette : {
-      primary :{
-        main:'#37812d',
-        light:'#48ee48',
-        dark:'#0eb129'
-      }
-    }
-  })
   return (
-    <>
-    <ThemeProvider theme={theme}>
-      <Router>
-        <Context>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <Context>
+        <ScrollTop />
         <Routes>
-          <Route element={<PrivateRoutes/>}>
-            <Route path='/' element={<Home/>}/>
-            <Route path='/addnewjob' element={<Addnewjob/>}/>
+          <Route path="/" element={<Home />} />
+          <Route path="/signin" element={<Signin />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route element={<PrivateRoutes role="company" />}>
+            <Route path="/addnewjob" element={<Addnewjob />} />
+            <Route path="/dashboard" element={<Dashboard />} />
           </Route>
-          <Route path='/signin' element={<Signin/>}/>
-          <Route path='/signup' element={<Signup/>}/>
-          <Route path='/*' element={<Pagenotfound/>}/>
+          <Route element={<PrivateRoutes role="employee" />}>
+            <Route path="/applications" element={<Applications />} />
+          </Route>
+          <Route path="/*" element={<Pagenotfound />} />
         </Routes>
-        </Context>
-      </Router>
-    </ThemeProvider>
-      </>
+      </Context>
+    </Router>
   );
 }
 

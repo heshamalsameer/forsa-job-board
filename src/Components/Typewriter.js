@@ -1,19 +1,19 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from "react";
 
-export  const Typewriter = ({text,time}) => {
-    const index = useRef(0);
-    const [currenttext,setcurrenttext] =useState('');
-
-    useEffect(() => {
-        const timeoutid =  setTimeout(() => {
-            setcurrenttext((value) => value + text.charAt(index.current));
-            index.current++;
-        }, time);
-        return () => {
-            clearTimeout(timeoutid);
-        };
-    },[currenttext,text])
+export const Typewriter = ({ text, time = 30 }) => {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    setCount(0);
+  }, [text]);
+  useEffect(() => {
+    if (count >= text.length) return undefined;
+    const id = setTimeout(() => setCount((c) => c + 1), time);
+    return () => clearTimeout(id);
+  }, [count, text, time]);
   return (
-    <p>{currenttext}</p>
-  )
-}
+    <span>
+      {text.slice(0, count)}
+      <span style={{ opacity: count < text.length ? 1 : 0, color: "var(--brand)" }}>▍</span>
+    </span>
+  );
+};

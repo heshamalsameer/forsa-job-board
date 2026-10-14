@@ -1,58 +1,75 @@
-import React, {createContext,useEffect,useReducer, useState} from 'react'
-import { reduser } from './reduser';
-import { jobs } from './initial';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState } from "react";
+import { reduser } from "./reduser";
+import { jobs, demoUsers, demoApplications } from "./initial";
+import { Action_Types as actions } from "./ActionsTypes";
 
-export const initialstate = {
-    // jobs: localStorage.getItem('jobs') ? JSON.parse(localStorage.getItem('jobs')) : jobs,
-    jobs: jobs,
-    users: localStorage.getItem('users') ? JSON.parse(localStorage.getItem('users')) : [],
-    employees: localStorage.getItem('employees') ? JSON.parse(localStorage.getItem('employees')) : [],
-    openmodel:{},
-    Setopenmodel:() => {},
-    twomodel:{employee:'',open:false},
-    Settwomodel:() => {},
-    login:{login:false},
-    setlogin:() => {},
-    dispatch:() => {},
-    loginby:  localStorage.getItem('loginby') ? localStorage.getItem('loginby') :'employee',
-    setloginby:() => {},
+const KEY = "forsa-state-v1";
 
+const load = () => {
+  const base = { jobs, users: demoUsers, employees: demoApplications, saved: {}, session: null };
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) return { ...base, ...JSON.parse(raw) };
+  } catch {
   }
-export const GlobalContext = createContext(initialstate);
+  return base;
+};
 
-export const Context = ({children}) => {
-  const [state,dispatch] = useReducer(reduser,initialstate);
-  const [open,setopen] = useState({open:false,id:''});
-  const [twomodel,settwomodel] = useState({employee:'',open:false});
-  const [login,setlogin] = useState({login:false});
-  const [loginby,setloginby] = useState('');
-  
+export const GlobalContext = createContext(null);
+
+export const Context = ({ children }) => {
+  const [state, dispatch] = useReducer(reduser, undefined, load);
+  const [toasts, setToasts] = useState([]);
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem("forsa-theme") || "light";
+    } catch {
+      return "light";
+    }
+  });
+
   useEffect(() => {
-    localStorage.setItem('jobs',JSON.stringify(state.jobs));
-    localStorage.setItem('users',JSON.stringify(state.users));
-    localStorage.setItem('employees',JSON.stringify(state.employees));
-    localStorage.setItem('loginby',state.loginby);
-  },[state])
-  return (
-    <GlobalContext.Provider value={{
-      jobs:state.jobs,
-      users:state.users,
-      employees:state.employees,
-      dispatch: dispatch,
-      openmodel:open,
-      Setopenmodel:setopen,
-      twomodel:twomodel,
-      Settwomodel:settwomodel,
-      loginby:loginby,
-      setloginby:setloginby,
-      login:login,
-      setlogin:setlogin,
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state));
+    } catch {
+    }
+  }, [state]);
 
-    }}>
-        {children}
-    </GlobalContext.Provider>
-  )
-}
-// export const usejobContext = () => {
-//   return useContext(GlobalContext);
-// }
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem("forsa-theme", theme);
+    } catch {
+    }
+  }, [theme]);
+
+  const notify = useCallback((text, tone = "ok") => {
+    const id = Date.now() + Math.random();
+    setToasts((t) => [...t.slice(-2), { id, text, tone }]);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3200);
+  }, []);
+
+  const value = useMemo(() => {
+    const user = state.users.find((u) => u.email === state.session) || null;
+    const saved = user ? state.saved[user.email] || [] : [];
+    return {
+      ...state,
+      dispatch,
+      user,
+      login: !!user,
+      loginby: user?.loginby || "employee",
+      savedIds: saved,
+      toasts,
+      notify,
+      theme,
+      toggleTheme: () => setTheme((t) => (t === "dark" ? "light" : "dark")),
+      toggleSaved: (id) => user && dispatch({ type: actions.TOGGLE_SAVED, email: user.email, id }),
+      applicationsFor: (jobId) => state.employees.filter((a) => a.id === jobId),
+      hasApplied: (jobId) => !!user && state.employees.some((a) => a.id === jobId && a.email === user.email),
+    };
+  }, [state, toasts, notify, theme]);
+
+  return <GlobalContext.Provider value={value}>{children}</GlobalContext.Provider>;
+};
+
+export const useJobs = () => useContext(GlobalContext);
